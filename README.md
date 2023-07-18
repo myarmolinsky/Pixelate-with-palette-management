@@ -1,3 +1,17 @@
+# Pixelate with Palette Management
+
+## Features
+
+- [x] Upload image
+- [x] Pixelate uploaded image
+- [x] Change block size of pixelation
+- [ ] Display palette
+  - [ ] Hide colors from the palette
+  - [ ] Replace colors from the palette with the next closest color in the palette
+  - [ ] Replace colors from the palette with a specific color
+  - [ ] Create/provide a complete palette
+- [ ] Download the pixelated image
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
