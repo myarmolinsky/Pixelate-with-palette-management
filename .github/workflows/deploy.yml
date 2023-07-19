@@ -1,4 +1,7 @@
 name: Deploy
+env:
+  MY_EMAIL: yarmolinskymatthew@gmail.com
+  MY_NAME: Matthew Yarmolinsky
 on:
   push:
     branches:
@@ -14,6 +17,8 @@ jobs:
 
       - name: Build 🔧
         run: |
+          git config --global user.email $MY_EMAIL
+          git config --global user.name $MY_NAME
           npm ci
           npm run deploy
 
