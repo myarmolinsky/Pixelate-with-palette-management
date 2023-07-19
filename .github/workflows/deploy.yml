@@ -1,7 +1,7 @@
 name: Deploy
 env:
   MY_EMAIL: yarmolinskymatthew@gmail.com
-  MY_NAME: Matthew Yarmolinsky
+  MY_NAME: myarmolinsky
 on:
   push:
     branches:
