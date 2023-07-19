@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import { useContext, useEffect, useState } from 'react';
 import { CanvasContext } from '../../context/canvas/CanvasState';
-import { Index } from '../index/Index';
+import { ManageCanvas } from './ManageCanvas';
 import { Stop } from '@mui/icons-material';
 
 const COLORS_PER_PAGE = 10;
@@ -38,7 +38,7 @@ export const Content = () => {
 					<canvas id="canvas" />
 				</Grid>
 				<Grid item>
-					<Index />
+					<ManageCanvas />
 				</Grid>
 			</Grid>
 			{stats && (

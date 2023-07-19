@@ -1,5 +1,5 @@
 import { CanvasState } from './context/canvas/CanvasState';
-import { Content } from './routes/content/Content';
+import { Content } from './pages/content/Content';
 
 export const App = () => {
 	return (
