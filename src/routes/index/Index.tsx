@@ -1,5 +1,5 @@
 import { ChangeEvent, useRef, useContext } from 'react';
-import { Button, Input, InputLabel } from '@mui/material';
+import { Button, Grid, TextField } from '@mui/material';
 import { CanvasContext } from '../../context/canvas/CanvasState';
 
 export const Index = () => {
@@ -33,24 +33,28 @@ export const Index = () => {
 	};
 
 	return (
-		<>
-			<input
-				accept="image/*"
-				className="displayNone"
-				onChange={handleFile}
-				ref={selectImageInputRef}
-				type="file"
-				hidden
-			/>
-			<Button onClick={handleImageButton} variant="contained" sx={{ mb: 1 }}>
-				Select Image
-			</Button>
-			<InputLabel>Block size</InputLabel>
-			<Input
-				defaultValue={blockSize}
-				onChange={handleBlockSizeChange}
-				type="number"
-			/>
-		</>
+		<Grid container direction="column" spacing={2}>
+			<Grid item>
+				<input
+					accept="image/*"
+					className="displayNone"
+					onChange={handleFile}
+					ref={selectImageInputRef}
+					type="file"
+					hidden
+				/>
+				<Button onClick={handleImageButton} variant="contained">
+					Select Image
+				</Button>
+			</Grid>
+			<Grid item>
+				<TextField
+					label="Block size"
+					defaultValue={blockSize}
+					onChange={handleBlockSizeChange}
+					type="number"
+				/>
+			</Grid>
+		</Grid>
 	);
 };
