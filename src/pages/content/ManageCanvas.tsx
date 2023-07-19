@@ -2,7 +2,7 @@ import { ChangeEvent, useRef, useContext } from 'react';
 import { Button, Grid, TextField } from '@mui/material';
 import { CanvasContext } from '../../context/canvas/CanvasState';
 
-export const Index = () => {
+export const ManageCanvas = () => {
 	const selectImageInputRef = useRef<HTMLInputElement | null>(null);
 	const { read, blob, canvas, canvasHidden, context, blockSize, setBlockSize } =
 		useContext(CanvasContext);
