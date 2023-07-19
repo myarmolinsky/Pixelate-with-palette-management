@@ -5,7 +5,7 @@
 - [x] Upload image
 - [x] Pixelate uploaded image
 - [x] Change block size of pixelation
-- [ ] Display palette
+- [x] Display palette
   - [ ] Hide colors from the palette
   - [ ] Replace colors from the palette with the next closest color in the palette
   - [ ] Replace colors from the palette with a specific color
