@@ -1,12 +1,10 @@
 {
   "files": {
-    "main.js": "/Pixelate-with-palette-management/static/js/main.f7a7cbab.js",
-    "static/js/787.2c9f54ba.chunk.js": "/Pixelate-with-palette-management/static/js/787.2c9f54ba.chunk.js",
+    "main.js": "/Pixelate-with-palette-management/static/js/main.08446287.js",
     "index.html": "/Pixelate-with-palette-management/index.html",
-    "main.f7a7cbab.js.map": "/Pixelate-with-palette-management/static/js/main.f7a7cbab.js.map",
-    "787.2c9f54ba.chunk.js.map": "/Pixelate-with-palette-management/static/js/787.2c9f54ba.chunk.js.map"
+    "main.08446287.js.map": "/Pixelate-with-palette-management/static/js/main.08446287.js.map"
   },
   "entrypoints": [
-    "static/js/main.f7a7cbab.js"
+    "static/js/main.08446287.js"
   ]
 }
