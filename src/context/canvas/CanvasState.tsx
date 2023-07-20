@@ -6,6 +6,7 @@ export interface Color {
 	green: number;
 	blue: number;
 	count: number;
+	hidden: boolean;
 }
 
 const calculateAverageColor = (
@@ -82,23 +83,28 @@ export interface CanvasStateInterface {
 	colors: Record<string, Color> | null;
 	context: CanvasRenderingContext2D | null;
 	image: HTMLImageElement | null;
+	create: (
+		blob: string,
+		canvas: CanvasStateInterface['canvas'],
+		context: CanvasStateInterface['context'],
+		blockSize: CanvasStateInterface['blockSize'],
+		colors: Record<string, Color>
+	) => void;
 	read: (
 		chosenFile: File,
 		canvas: CanvasStateInterface['canvas'],
 		context: CanvasStateInterface['context'],
 		blockSize: CanvasStateInterface['blockSize']
 	) => void;
-	setBlob: (blob: string) => void;
 	setBlockSize: (
 		blockSize: number,
 		canvasHidden: boolean,
 		blob: CanvasStateInterface['blob'],
 		canvas: CanvasStateInterface['canvas'],
-		context: CanvasStateInterface['context']
+		context: CanvasStateInterface['context'],
+		colors: Record<string, Color>
 	) => void;
 	setCanvas: (canvas: HTMLCanvasElement) => void;
-	setCanvasHidden: (canvasHidden: boolean) => void;
-	setColors: (colors: Record<string, Color>) => void;
 	setImage: (image: HTMLImageElement) => void;
 }
 
@@ -110,12 +116,10 @@ const initialState: CanvasStateInterface = {
 	colors: null,
 	context: null,
 	image: null,
+	create: () => null,
 	read: () => null,
-	setBlob: () => null,
 	setBlockSize: () => null,
 	setCanvas: () => null,
-	setCanvasHidden: () => null,
-	setColors: () => null,
 	setImage: () => null,
 };
 
@@ -133,11 +137,12 @@ export const CanvasState = ({ children }: { children: any }) => {
 		canvasHidden: boolean,
 		blob: CanvasStateInterface['blob'],
 		canvas: CanvasStateInterface['canvas'],
-		context: CanvasStateInterface['context']
+		context: CanvasStateInterface['context'],
+		colors: Record<string, Color>
 	) => {
 		dispatch({ type: 'SET_BLOCK_SIZE', payload: blockSize });
 		if (!canvasHidden && !!blob) {
-			create(blob, canvas, context, blockSize);
+			create(blob, canvas, context, blockSize, colors);
 		}
 	};
 
@@ -160,14 +165,15 @@ export const CanvasState = ({ children }: { children: any }) => {
 	const pixelate = (
 		canvas: CanvasStateInterface['canvas'],
 		context: CanvasStateInterface['context'],
-		blockSize: CanvasStateInterface['blockSize']
+		blockSize: CanvasStateInterface['blockSize'],
+		colors: Record<string, Color>
 	) => {
 		if (canvas == null || context == null) {
 			return;
 		}
 		// get dimensions from the image that we just put into the canvas
 		const { height, width } = canvas;
-		const colors: Record<string, Color> = {};
+		const newColors: Record<string, Color> = {};
 		// looping through every new "block" that will be created with the pixelation
 		for (let y = 0; y < height; y += blockSize) {
 			for (let x = 0; x < width; x += blockSize) {
@@ -180,24 +186,37 @@ export const CanvasState = ({ children }: { children: any }) => {
 					context.getImageData(x, y, blockX, blockY)
 				);
 				const name = `rgb(${averageColor.red}, ${averageColor.green}, ${averageColor.blue})`;
-				if (colors[name] != null) {
-					colors[name] = { ...colors[name], count: colors[name].count + 1 };
+				if (newColors[name] != null) {
+					newColors[name] = {
+						...newColors[name],
+						count: newColors[name].count + 1,
+						hidden: colors[name]?.hidden ?? false,
+					};
 				} else {
-					colors[name] = { ...averageColor, count: 1 };
+					newColors[name] = {
+						...averageColor,
+						count: 1,
+						hidden: colors[name]?.hidden ?? false,
+					};
 				}
-				// draw the new block over the top of the existing image that exists in the canvas
-				context.fillStyle = name;
-				context.fillRect(x, y, blockX, blockY);
+				if (colors[name]?.hidden) {
+					context.clearRect(x, y, blockX, blockY);
+				} else {
+					// draw the new block over the top of the existing image that exists in the canvas
+					context.fillStyle = name;
+					context.fillRect(x, y, blockX, blockY);
+				}
 			}
 		}
-		return colors;
+		return newColors;
 	};
 
 	const create = (
 		blob: string,
 		canvas: CanvasStateInterface['canvas'],
 		context: CanvasStateInterface['context'],
-		blockSize: CanvasStateInterface['blockSize']
+		blockSize: CanvasStateInterface['blockSize'],
+		colors: Record<string, Color>
 	) => {
 		const newImage = new Image();
 		newImage.src = blob;
@@ -213,9 +232,9 @@ export const CanvasState = ({ children }: { children: any }) => {
 				willReadFrequently: true,
 			});
 			context?.drawImage(newImage, 0, 0);
-			let colors = pixelate(canvas, context, blockSize);
-			if (colors != null) {
-				setColors(colors);
+			let newColors = pixelate(canvas, context, blockSize, colors);
+			if (newColors != null) {
+				setColors(newColors);
 				setCanvasHidden(false);
 			}
 		};
@@ -231,7 +250,7 @@ export const CanvasState = ({ children }: { children: any }) => {
 		fileReader.onloadend = (event) => {
 			const newBlob = event.target?.result as string;
 			setBlob(newBlob);
-			create(newBlob, canvas, context, blockSize);
+			create(newBlob, canvas, context, blockSize, {});
 		};
 		fileReader.readAsDataURL(chosenFile);
 	};
@@ -240,12 +259,10 @@ export const CanvasState = ({ children }: { children: any }) => {
 		<CanvasContext.Provider
 			value={{
 				...state,
-				setBlob,
 				setBlockSize,
 				setCanvas,
-				setCanvasHidden,
-				setColors,
 				read,
+				create,
 			}}
 		>
 			{children}

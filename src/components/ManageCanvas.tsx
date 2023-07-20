@@ -4,8 +4,16 @@ import { CanvasContext } from '../context/canvas/CanvasState';
 
 export const ManageCanvas = () => {
 	const selectImageInputRef = useRef<HTMLInputElement | null>(null);
-	const { read, blob, canvas, canvasHidden, context, blockSize, setBlockSize } =
-		useContext(CanvasContext);
+	const {
+		read,
+		blob,
+		canvas,
+		canvasHidden,
+		context,
+		blockSize,
+		setBlockSize,
+		colors,
+	} = useContext(CanvasContext);
 
 	const handleFile = (event: ChangeEvent<HTMLInputElement>) => {
 		const source = event.target.files?.[0];
@@ -27,7 +35,8 @@ export const ManageCanvas = () => {
 				canvasHidden,
 				blob,
 				canvas,
-				context
+				context,
+				colors ?? {}
 			);
 		}
 	};
