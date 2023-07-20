@@ -1,11 +1,11 @@
 import { CanvasStateInterface } from './CanvasState';
 
 type TYPE =
-	| 'SET_STATS'
-	| 'SET_BLOCK_SIZE'
-	| 'SET_CANVAS_HIDDEN'
 	| 'SET_BLOB'
+	| 'SET_BLOCK_SIZE'
 	| 'SET_CANVAS'
+	| 'SET_CANVAS_HIDDEN'
+	| 'SET_COLORS'
 	| 'SET_IMAGE';
 
 export const reducer = (
@@ -27,8 +27,8 @@ export const reducer = (
 			return { ...state, canvasHidden: payload };
 		case 'SET_IMAGE':
 			return { ...state, image: payload };
-		case 'SET_STATS':
-			return { ...state, stats: payload };
+		case 'SET_COLORS':
+			return { ...state, colors: payload };
 		default:
 			return state;
 	}

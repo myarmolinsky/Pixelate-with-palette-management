@@ -1,8 +1,11 @@
 import { createContext, useReducer } from 'react';
 import { reducer } from './canvasReducer';
 
-export interface Color extends ReturnType<typeof calculateAverageColor> {
-	name?: string;
+export interface Color {
+	red: number;
+	green: number;
+	blue: number;
+	count: number;
 }
 
 const calculateAverageColor = (
@@ -68,24 +71,17 @@ const getRgbFromImageData = (
 		red,
 		green,
 		blue,
-		name: '',
 	};
 };
-
-export interface Stats {
-	colorCounts: Record<string, number>;
-	colors: Array<Color>;
-	map: Array<Array<Color>>;
-}
 
 export interface CanvasStateInterface {
 	blob: string | null;
 	blockSize: number;
 	canvas: HTMLCanvasElement | null;
 	canvasHidden: boolean;
+	colors: Record<string, Color> | null;
 	context: CanvasRenderingContext2D | null;
 	image: HTMLImageElement | null;
-	stats: Stats | null;
 	read: (
 		chosenFile: File,
 		canvas: CanvasStateInterface['canvas'],
@@ -102,8 +98,8 @@ export interface CanvasStateInterface {
 	) => void;
 	setCanvas: (canvas: HTMLCanvasElement) => void;
 	setCanvasHidden: (canvasHidden: boolean) => void;
+	setColors: (colors: Record<string, Color>) => void;
 	setImage: (image: HTMLImageElement) => void;
-	setStats: (stats: Stats) => void;
 }
 
 const initialState: CanvasStateInterface = {
@@ -111,16 +107,16 @@ const initialState: CanvasStateInterface = {
 	blockSize: 10,
 	canvas: null,
 	canvasHidden: true,
+	colors: null,
 	context: null,
 	image: null,
-	stats: null,
 	read: () => null,
 	setBlob: () => null,
 	setBlockSize: () => null,
 	setCanvas: () => null,
 	setCanvasHidden: () => null,
+	setColors: () => null,
 	setImage: () => null,
-	setStats: () => null,
 };
 
 export const CanvasContext = createContext<CanvasStateInterface>(initialState);
@@ -157,8 +153,8 @@ export const CanvasState = ({ children }: { children: any }) => {
 		dispatch({ type: 'SET_IMAGE', payload: image });
 	};
 
-	const setStats = (stats: Stats) => {
-		dispatch({ type: 'SET_STATS', payload: stats });
+	const setColors = (colors: Record<string, Color>) => {
+		dispatch({ type: 'SET_COLORS', payload: colors });
 	};
 
 	const pixelate = (
@@ -171,39 +167,30 @@ export const CanvasState = ({ children }: { children: any }) => {
 		}
 		// get dimensions from the image that we just put into the canvas
 		const { height, width } = canvas;
-		const stats: Stats = {
-			colorCounts: {},
-			colors: [],
-			map: [],
-		};
+		const colors: Record<string, Color> = {};
 		// looping through every new "block" that will be created with the pixelation
 		for (let y = 0; y < height; y += blockSize) {
-			const row = [];
 			for (let x = 0; x < width; x += blockSize) {
 				const remainingX = width - x;
 				const remainingY = height - y;
 				const blockX = remainingX > blockSize ? blockSize : remainingX;
 				const blockY = remainingY > blockSize ? blockSize : remainingY;
 				// get the image data for the current block and calculate its average color
-				const averageColor: Color = calculateAverageColor(
+				const averageColor = calculateAverageColor(
 					context.getImageData(x, y, blockX, blockY)
 				);
-				averageColor.name = `${averageColor.red}_${averageColor.green}_${averageColor.blue}`;
-				// add this color to the row array so it can be added to the image stats
-				row.push(averageColor);
-				if (Object.hasOwn(stats.colorCounts, averageColor.name))
-					stats.colorCounts[averageColor.name]++;
-				else {
-					stats.colorCounts[averageColor.name] = 1;
-					stats.colors.push(averageColor);
+				const name = `rgb(${averageColor.red}, ${averageColor.green}, ${averageColor.blue})`;
+				if (colors[name] != null) {
+					colors[name] = { ...colors[name], count: colors[name].count + 1 };
+				} else {
+					colors[name] = { ...averageColor, count: 1 };
 				}
 				// draw the new block over the top of the existing image that exists in the canvas
-				context.fillStyle = `rgb(${averageColor.red}, ${averageColor.green}, ${averageColor.blue})`;
+				context.fillStyle = name;
 				context.fillRect(x, y, blockX, blockY);
 			}
-			stats.map.push(row);
 		}
-		return stats;
+		return colors;
 	};
 
 	const create = (
@@ -226,9 +213,9 @@ export const CanvasState = ({ children }: { children: any }) => {
 				willReadFrequently: true,
 			});
 			context?.drawImage(newImage, 0, 0);
-			let stats = pixelate(canvas, context, blockSize);
-			if (stats != null) {
-				setStats(stats);
+			let colors = pixelate(canvas, context, blockSize);
+			if (colors != null) {
+				setColors(colors);
 				setCanvasHidden(false);
 			}
 		};
@@ -257,7 +244,7 @@ export const CanvasState = ({ children }: { children: any }) => {
 				setBlockSize,
 				setCanvas,
 				setCanvasHidden,
-				setStats,
+				setColors,
 				read,
 			}}
 		>
