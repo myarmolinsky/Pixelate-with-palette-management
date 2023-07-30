@@ -13,12 +13,14 @@ export const ManageCanvas = () => {
 		blockSize,
 		setBlockSize,
 		colors,
+		numberOfColors,
+		setNumberOfColors,
 	} = useContext(CanvasContext);
 
 	const handleFile = (event: ChangeEvent<HTMLInputElement>) => {
 		const source = event.target.files?.[0];
 		if (source != null) {
-			read(source, canvas, context, blockSize);
+			read(source, canvas, context, blockSize, numberOfColors);
 		}
 	};
 
@@ -28,10 +30,34 @@ export const ManageCanvas = () => {
 
 	const handleBlockSizeChange = (event: ChangeEvent<HTMLInputElement>) => {
 		const newValue = event.target.value;
-		if (newValue.match(/^-?\d+$/) || newValue.match(/^\d+\.\d+$/)) {
+		if (
+			(newValue.match(/^-?\d+$/) || newValue.match(/^\d+\.\d+$/)) &&
+			newValue !== '0'
+		) {
 			// valid integer (positive or negative) or float
 			setBlockSize(
 				Math.abs(parseInt(newValue)),
+				numberOfColors,
+				canvasHidden,
+				blob,
+				canvas,
+				context,
+				colors ?? {}
+			);
+		}
+	};
+
+	const handleNumberOfColorsChange = (event: ChangeEvent<HTMLInputElement>) => {
+		const newValue = event.target.value;
+		if (
+			newValue === '' ||
+			((newValue.match(/^-?\d+$/) || newValue.match(/^\d+\.\d+$/)) &&
+				newValue !== '0')
+		) {
+			// valid integer (positive or negative) or float
+			setNumberOfColors(
+				newValue === '' ? null : Math.abs(parseInt(newValue)),
+				blockSize,
 				canvasHidden,
 				blob,
 				canvas,
@@ -62,6 +88,15 @@ export const ManageCanvas = () => {
 					defaultValue={blockSize}
 					onChange={handleBlockSizeChange}
 					type="number"
+				/>
+			</Grid>
+			<Grid item>
+				<TextField
+					label="Number of Colors"
+					defaultValue={numberOfColors}
+					onChange={handleNumberOfColorsChange}
+					type="number"
+					sx={{ mr: 2 }}
 				/>
 			</Grid>
 		</Grid>

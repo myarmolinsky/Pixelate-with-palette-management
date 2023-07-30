@@ -10,7 +10,7 @@
   - [ ] Replace colors from the palette with the next closest color in the palette
   - [ ] Replace colors from the palette with a specific color
   - [ ] Create/provide a complete palette
-  - [ ] Limit number of colors in automatically generated palette
+  - [x] Limit number of colors in automatically generated palette
 - [ ] Download the pixelated image
 
 # Getting Started with Create React App
