@@ -15,7 +15,7 @@ import { Stop, Visibility, VisibilityOff } from '@mui/icons-material';
 const COLORS_PER_PAGE = 10;
 
 export const Palette = () => {
-	const { colors, blob, create, canvas, context, blockSize } =
+	const { colors, blob, create, canvas, context, blockSize, numberOfColors } =
 		useContext(CanvasContext);
 
 	const [page, setPage] = useState(1);
@@ -83,7 +83,14 @@ export const Palette = () => {
 											} else {
 												newColors[name] = { ...newColors[name], hidden: true };
 											}
-											create(blob, canvas, context, blockSize, newColors);
+											create(
+												blob,
+												canvas,
+												context,
+												blockSize,
+												numberOfColors,
+												newColors
+											);
 										}
 									}}
 								>

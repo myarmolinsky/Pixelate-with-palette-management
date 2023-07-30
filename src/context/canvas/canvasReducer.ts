@@ -6,7 +6,8 @@ type TYPE =
 	| 'SET_CANVAS'
 	| 'SET_CANVAS_HIDDEN'
 	| 'SET_COLORS'
-	| 'SET_IMAGE';
+	| 'SET_IMAGE'
+	| 'SET_NUMBER_OF_COLORS';
 
 export const reducer = (
 	state: CanvasStateInterface,
@@ -20,6 +21,11 @@ export const reducer = (
 			return {
 				...state,
 				blockSize: payload,
+			};
+		case 'SET_NUMBER_OF_COLORS':
+			return {
+				...state,
+				numberOfColors: payload,
 			};
 		case 'SET_CANVAS':
 			return { ...state, canvas: payload };

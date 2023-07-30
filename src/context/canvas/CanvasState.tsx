@@ -75,6 +75,64 @@ const getRgbFromImageData = (
 	};
 };
 
+const getClosestColorInPalette = (
+	color: ReturnType<typeof calculateAverageColor>,
+	palette: Record<string, Color>
+) => {
+	let closestColor: Color | undefined;
+	let shortestDistance = Number.MAX_SAFE_INTEGER;
+	// loop through every paint color
+	Object.values(palette).forEach((paletteColor) => {
+		if (shortestDistance === 0) {
+			return;
+		}
+		// calculate the "distance" between color and this particular paint color
+		const distance =
+			Math.abs(paletteColor.red - color.red) +
+			Math.abs(paletteColor.green - color.green) +
+			Math.abs(paletteColor.blue - color.blue);
+		// if this paint color is "closer" than any of the others we examined, save it
+		// as the paint that is currently the "closest"
+		if (distance < shortestDistance) {
+			shortestDistance = distance;
+			closestColor = paletteColor;
+		}
+	});
+	return closestColor;
+};
+
+const reduceColors = (
+	colors: Record<string, Color>,
+	numberOfColors: number
+): Record<string, Color> => {
+	const colorsArray = Object.entries(colors);
+	if (colorsArray.length < numberOfColors) {
+		return colors;
+	}
+	const sortedColors = colorsArray.sort(([_nameA, colorA], [_nameB, colorB]) =>
+		Math.abs(0 - colorA.red) +
+			Math.abs(0 - colorA.green) +
+			Math.abs(0 - colorA.blue) >
+		Math.abs(0 - colorB.red) +
+			Math.abs(0 - colorB.green) +
+			Math.abs(0 - colorB.blue)
+			? 1
+			: -1
+	);
+	const skipper = sortedColors.length / numberOfColors;
+	const reducedColors: typeof sortedColors = [];
+	for (let i = 0; i < sortedColors.length; i += skipper) {
+		reducedColors.push(
+			sortedColors
+				.slice(Math.floor(i), Math.floor(i + skipper))
+				.sort(([_nameA, colorA], [_nameB, colorB]) =>
+					colorA.count > colorB.count ? 1 : -1
+				)[0]
+		);
+	}
+	return Object.fromEntries(reducedColors);
+};
+
 export interface CanvasStateInterface {
 	blob: string | null;
 	blockSize: number;
@@ -83,21 +141,25 @@ export interface CanvasStateInterface {
 	colors: Record<string, Color> | null;
 	context: CanvasRenderingContext2D | null;
 	image: HTMLImageElement | null;
+	numberOfColors: number | null;
 	create: (
 		blob: string,
 		canvas: CanvasStateInterface['canvas'],
 		context: CanvasStateInterface['context'],
 		blockSize: CanvasStateInterface['blockSize'],
+		numberOfColors: CanvasStateInterface['numberOfColors'],
 		colors: Record<string, Color>
 	) => void;
 	read: (
 		chosenFile: File,
 		canvas: CanvasStateInterface['canvas'],
 		context: CanvasStateInterface['context'],
-		blockSize: CanvasStateInterface['blockSize']
+		blockSize: CanvasStateInterface['blockSize'],
+		numberOfColors: CanvasStateInterface['numberOfColors']
 	) => void;
 	setBlockSize: (
 		blockSize: number,
+		numberOfColors: CanvasStateInterface['numberOfColors'],
 		canvasHidden: boolean,
 		blob: CanvasStateInterface['blob'],
 		canvas: CanvasStateInterface['canvas'],
@@ -106,6 +168,15 @@ export interface CanvasStateInterface {
 	) => void;
 	setCanvas: (canvas: HTMLCanvasElement) => void;
 	setImage: (image: HTMLImageElement) => void;
+	setNumberOfColors: (
+		numberOfColors: number | null,
+		blockSize: CanvasStateInterface['blockSize'],
+		canvasHidden: boolean,
+		blob: CanvasStateInterface['blob'],
+		canvas: CanvasStateInterface['canvas'],
+		context: CanvasStateInterface['context'],
+		colors: Record<string, Color>
+	) => void;
 }
 
 const initialState: CanvasStateInterface = {
@@ -116,11 +187,13 @@ const initialState: CanvasStateInterface = {
 	colors: null,
 	context: null,
 	image: null,
+	numberOfColors: null,
 	create: () => null,
 	read: () => null,
 	setBlockSize: () => null,
 	setCanvas: () => null,
 	setImage: () => null,
+	setNumberOfColors: () => null,
 };
 
 export const CanvasContext = createContext<CanvasStateInterface>(initialState);
@@ -134,6 +207,7 @@ export const CanvasState = ({ children }: { children: any }) => {
 
 	const setBlockSize = (
 		blockSize: number,
+		numberOfColors: CanvasStateInterface['numberOfColors'],
 		canvasHidden: boolean,
 		blob: CanvasStateInterface['blob'],
 		canvas: CanvasStateInterface['canvas'],
@@ -142,7 +216,22 @@ export const CanvasState = ({ children }: { children: any }) => {
 	) => {
 		dispatch({ type: 'SET_BLOCK_SIZE', payload: blockSize });
 		if (!canvasHidden && !!blob) {
-			create(blob, canvas, context, blockSize, colors);
+			create(blob, canvas, context, blockSize, numberOfColors, colors);
+		}
+	};
+
+	const setNumberOfColors = (
+		numberOfColors: number | null,
+		blockSize: number,
+		canvasHidden: boolean,
+		blob: CanvasStateInterface['blob'],
+		canvas: CanvasStateInterface['canvas'],
+		context: CanvasStateInterface['context'],
+		colors: Record<string, Color>
+	) => {
+		dispatch({ type: 'SET_NUMBER_OF_COLORS', payload: numberOfColors });
+		if (!canvasHidden && !!blob) {
+			create(blob, canvas, context, blockSize, numberOfColors, colors);
 		}
 	};
 
@@ -162,12 +251,65 @@ export const CanvasState = ({ children }: { children: any }) => {
 		dispatch({ type: 'SET_COLORS', payload: colors });
 	};
 
+	const pixelateWithPalette = (
+		canvas: CanvasStateInterface['canvas'],
+		context: CanvasStateInterface['context'],
+		blockSize: CanvasStateInterface['blockSize'],
+		palette: Record<string, Color>
+	) => {
+		if (canvas == null || context == null) {
+			return;
+		}
+		// get dimensions from the image that we just put into the canvas
+		const { height, width } = canvas;
+		const newColors: Record<string, Color> = {};
+		// looping through every new "block" that will be created with the pixelation
+		for (let y = 0; y < height; y += blockSize) {
+			for (let x = 0; x < width; x += blockSize) {
+				const remainingX = width - x;
+				const remainingY = height - y;
+				const blockX = remainingX > blockSize ? blockSize : remainingX;
+				const blockY = remainingY > blockSize ? blockSize : remainingY;
+				// get the image data for the current block and calculate its average color
+				const averageColor = calculateAverageColor(
+					context.getImageData(x, y, blockX, blockY)
+				);
+				const closestColorInPalette = getClosestColorInPalette(
+					averageColor,
+					palette
+				)!;
+				const name = `rgb(${closestColorInPalette.red}, ${closestColorInPalette.green}, ${closestColorInPalette.blue})`;
+				if (newColors[name] != null) {
+					newColors[name] = {
+						...newColors[name],
+						count: newColors[name].count + 1,
+						hidden: palette[name].hidden ?? false,
+					};
+				} else {
+					newColors[name] = {
+						...averageColor,
+						count: 1,
+						hidden: palette[name].hidden ?? false,
+					};
+				}
+				if (palette[name].hidden) {
+					context.clearRect(x, y, blockX, blockY);
+				} else {
+					// draw the new block over the top of the existing image that exists in the canvas
+					context.fillStyle = name;
+					context.fillRect(x, y, blockX, blockY);
+				}
+			}
+		}
+	};
+
 	const pixelate = (
 		canvas: CanvasStateInterface['canvas'],
 		context: CanvasStateInterface['context'],
 		blockSize: CanvasStateInterface['blockSize'],
+		numberOfColors: CanvasStateInterface['numberOfColors'],
 		colors: Record<string, Color>
-	) => {
+	): Record<string, Color> | undefined => {
 		if (canvas == null || context == null) {
 			return;
 		}
@@ -199,14 +341,21 @@ export const CanvasState = ({ children }: { children: any }) => {
 						hidden: colors[name]?.hidden ?? false,
 					};
 				}
-				if (colors[name]?.hidden) {
-					context.clearRect(x, y, blockX, blockY);
-				} else {
-					// draw the new block over the top of the existing image that exists in the canvas
-					context.fillStyle = name;
-					context.fillRect(x, y, blockX, blockY);
+				if (numberOfColors === null) {
+					if (colors[name]?.hidden) {
+						context.clearRect(x, y, blockX, blockY);
+					} else {
+						// draw the new block over the top of the existing image that exists in the canvas
+						context.fillStyle = name;
+						context.fillRect(x, y, blockX, blockY);
+					}
 				}
 			}
+		}
+		if (numberOfColors) {
+			const reducedColors = reduceColors(newColors, numberOfColors);
+			pixelateWithPalette(canvas, context, blockSize, reducedColors);
+			return reducedColors;
 		}
 		return newColors;
 	};
@@ -216,6 +365,7 @@ export const CanvasState = ({ children }: { children: any }) => {
 		canvas: CanvasStateInterface['canvas'],
 		context: CanvasStateInterface['context'],
 		blockSize: CanvasStateInterface['blockSize'],
+		numberOfColors: CanvasStateInterface['numberOfColors'],
 		colors: Record<string, Color>
 	) => {
 		const newImage = new Image();
@@ -232,7 +382,13 @@ export const CanvasState = ({ children }: { children: any }) => {
 				willReadFrequently: true,
 			});
 			context?.drawImage(newImage, 0, 0);
-			let newColors = pixelate(canvas, context, blockSize, colors);
+			let newColors = pixelate(
+				canvas,
+				context,
+				blockSize,
+				numberOfColors,
+				colors
+			);
 			if (newColors != null) {
 				setColors(newColors);
 				setCanvasHidden(false);
@@ -244,13 +400,14 @@ export const CanvasState = ({ children }: { children: any }) => {
 		chosenFile: File,
 		canvas: CanvasStateInterface['canvas'],
 		context: CanvasStateInterface['context'],
-		blockSize: CanvasStateInterface['blockSize']
+		blockSize: CanvasStateInterface['blockSize'],
+		numberOfColors: CanvasStateInterface['numberOfColors']
 	) => {
 		const fileReader = new FileReader();
 		fileReader.onloadend = (event) => {
 			const newBlob = event.target?.result as string;
 			setBlob(newBlob);
-			create(newBlob, canvas, context, blockSize, {});
+			create(newBlob, canvas, context, blockSize, numberOfColors, {});
 		};
 		fileReader.readAsDataURL(chosenFile);
 	};
@@ -261,6 +418,7 @@ export const CanvasState = ({ children }: { children: any }) => {
 				...state,
 				setBlockSize,
 				setCanvas,
+				setNumberOfColors,
 				read,
 				create,
 			}}
